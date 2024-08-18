@@ -2,6 +2,8 @@ package cache
 
 import (
 	"lrucache/ptr"
+	"strconv"
+	"sync"
 	"testing"
 )
 
@@ -89,6 +91,27 @@ func TestGetFailure(t *testing.T) {
 	// Check if the node was found
 	if v != nil || ok {
 		t.Errorf("Expected value to be 'value'")
+	}
+}
+
+func TestPutConcurrent(t *testing.T) {
+	// Create a new cache
+	cache := NewLRUCache[string](2)
+
+	// Put the node
+	wg := sync.WaitGroup{}
+	for i := 0; i < 1000; i++ {
+		wg.Add(1)
+		go func() {
+			cache.Put("key"+strconv.Itoa(i), ptr.To("value"+strconv.Itoa(i)))
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+
+	// Check capacity to make sure the nodes are being removed
+	if len(cache.cache) != cache.capacity {
+		t.Errorf("Expected cache to have less than 1000 elements")
 	}
 }
 
